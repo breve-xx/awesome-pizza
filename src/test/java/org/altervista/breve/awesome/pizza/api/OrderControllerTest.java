@@ -1,6 +1,8 @@
 package org.altervista.breve.awesome.pizza.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.altervista.breve.awesome.pizza.exception.InvalidOrderPizzaException;
+import org.altervista.breve.awesome.pizza.exception.InvalidOrderQtyException;
 import org.altervista.breve.awesome.pizza.model.request.OrderEntry;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.model.response.SubmitOrderResponse;
@@ -65,6 +67,26 @@ class OrderControllerTest {
         mockMvc.perform(post("/api/v1/order")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsBytes(new SubmitOrderRequest(Collections.emptyList()))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void givenARequestWhenSubmittingAnOrderAnInvalidOrderPizzaExceptionIsThrownThenShouldReturnBadRequest() throws Exception {
+        when(orderService.submit(any(SubmitOrderRequest.class))).thenThrow(InvalidOrderPizzaException.class);
+
+        mockMvc.perform(post("/api/v1/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(om.writeValueAsBytes(new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-not-supported-pizza-name", 7))))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void givenARequestWhenSubmittingAnOrderAnInvalidOrderQtyExceptionIsThrownThenShouldReturnBadRequest() throws Exception {
+        when(orderService.submit(any(SubmitOrderRequest.class))).thenThrow(InvalidOrderQtyException.class);
+
+        mockMvc.perform(post("/api/v1/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(om.writeValueAsBytes(new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-pizza-name", -7))))))
                 .andExpect(status().isBadRequest());
     }
 
