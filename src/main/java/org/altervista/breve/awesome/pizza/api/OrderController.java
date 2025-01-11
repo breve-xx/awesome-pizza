@@ -5,10 +5,13 @@ import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.model.response.SubmitOrderResponse;
 import org.altervista.breve.awesome.pizza.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -25,9 +28,6 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<SubmitOrderResponse> submit(@RequestBody SubmitOrderRequest request) {
-        if (request.order() == null || request.order().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An empty order can't be submitted");
-        }
         return ResponseEntity.ok(new SubmitOrderResponse(service.submit(request)));
     }
 

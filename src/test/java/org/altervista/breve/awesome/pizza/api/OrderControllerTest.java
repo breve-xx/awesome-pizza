@@ -1,13 +1,13 @@
 package org.altervista.breve.awesome.pizza.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderPizzaException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderQtyException;
 import org.altervista.breve.awesome.pizza.model.request.OrderEntry;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.model.response.SubmitOrderResponse;
 import org.altervista.breve.awesome.pizza.service.OrderService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -43,59 +45,68 @@ class OrderControllerTest {
     @MockitoBean
     private OrderService orderService;
 
-    @BeforeEach
-    public void setUp() {
-        when(orderService.submit(any(SubmitOrderRequest.class))).thenReturn(AN_UUID);
-    }
-
     @Test
     public void givenARequestWithMissingBodyWhenSubmittingAnOrderThenShouldReturnBadRequest() throws Exception {
         mockMvc.perform(post("/api/v1/order"))
                 .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(orderService);
     }
 
     @Test
-    public void givenARequestWithMissingOrderWhenSubmittingAnOrderThenShouldReturnBadRequest() throws Exception {
-        mockMvc.perform(post("/api/v1/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isBadRequest());
-    }
+    public void givenARequestWhenSubmittingAnOrderAnEmptyOrderExceptionIsThrownThenShouldReturnBadRequest() throws Exception {
+        when(orderService.submit(any(SubmitOrderRequest.class))).thenThrow(EmptyOrderException.class);
 
-    @Test
-    public void givenARequestWithEmptyOrderWhenSubmittingAnOrderThenShouldReturnBadRequest() throws Exception {
+        final SubmitOrderRequest req = new SubmitOrderRequest(Collections.emptyList());
+
         mockMvc.perform(post("/api/v1/order")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsBytes(new SubmitOrderRequest(Collections.emptyList()))))
                 .andExpect(status().isBadRequest());
+
+        verify(orderService).submit(req);
     }
 
     @Test
     public void givenARequestWhenSubmittingAnOrderAnInvalidOrderPizzaExceptionIsThrownThenShouldReturnBadRequest() throws Exception {
         when(orderService.submit(any(SubmitOrderRequest.class))).thenThrow(InvalidOrderPizzaException.class);
 
+        final SubmitOrderRequest req = new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-not-supported-pizza-name", 7)));
+
         mockMvc.perform(post("/api/v1/order")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(om.writeValueAsBytes(new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-not-supported-pizza-name", 7))))))
+                        .content(om.writeValueAsBytes(req)))
                 .andExpect(status().isBadRequest());
+
+        verify(orderService).submit(req);
     }
 
     @Test
     public void givenARequestWhenSubmittingAnOrderAnInvalidOrderQtyExceptionIsThrownThenShouldReturnBadRequest() throws Exception {
         when(orderService.submit(any(SubmitOrderRequest.class))).thenThrow(InvalidOrderQtyException.class);
 
+        final SubmitOrderRequest req = new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-pizza-name", -7)));
+
         mockMvc.perform(post("/api/v1/order")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(om.writeValueAsBytes(new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-pizza-name", -7))))))
+                        .content(om.writeValueAsBytes(req)))
                 .andExpect(status().isBadRequest());
+
+        verify(orderService).submit(req);
     }
 
     @Test
     public void givenARequestWhenSubmittingAnOrderThenShouldReturnTheOrderCode() throws Exception {
+        when(orderService.submit(any(SubmitOrderRequest.class))).thenReturn(AN_UUID);
+
+        final SubmitOrderRequest req = new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-pizza-name", 7)));
+
         mockMvc.perform(post("/api/v1/order")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(om.writeValueAsBytes(new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-pizza-name", 7))))))
+                        .content(om.writeValueAsBytes(req)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(om.writeValueAsString(new SubmitOrderResponse(AN_UUID))));
+
+        verify(orderService).submit(req);
     }
 }

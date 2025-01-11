@@ -1,13 +1,23 @@
 package org.altervista.breve.awesome.pizza.service;
 
 import org.altervista.breve.awesome.pizza.dao.OrderDao;
-import org.altervista.breve.awesome.pizza.model.*;
+import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
+import org.altervista.breve.awesome.pizza.model.Order;
+import org.altervista.breve.awesome.pizza.model.OrderPizza;
+import org.altervista.breve.awesome.pizza.model.OrderQty;
+import org.altervista.breve.awesome.pizza.model.OrderStatus;
+import org.altervista.breve.awesome.pizza.model.Pizza;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.utils.UUIDUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class OrderService {
@@ -22,6 +32,10 @@ public class OrderService {
     }
 
     public UUID submit(final SubmitOrderRequest request) {
+        if (request == null || request.order() == null || request.order().isEmpty()) {
+            throw new EmptyOrderException();
+        }
+
         final Map<Pizza, Integer> pizzas = new HashMap<>();
 
         request.order().forEach(e -> {
