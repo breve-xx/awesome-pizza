@@ -2,6 +2,7 @@ package org.altervista.breve.awesome.pizza.service;
 
 import org.altervista.breve.awesome.pizza.dao.OrderDao;
 import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
+import org.altervista.breve.awesome.pizza.exception.InvalidOrderCodeException;
 import org.altervista.breve.awesome.pizza.model.Order;
 import org.altervista.breve.awesome.pizza.model.OrderPizza;
 import org.altervista.breve.awesome.pizza.model.OrderQty;
@@ -12,12 +13,12 @@ import org.altervista.breve.awesome.pizza.utils.UUIDUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Service
 public class OrderService {
@@ -49,16 +50,18 @@ public class OrderService {
     }
 
 
-    public List<Order> allOrders() {
-        return Collections.emptyList();
+    public List<Order> findNotCompletedOrders() {
+        return Stream.concat(
+                dao.searchByStatus(OrderStatus.IN_PROGRESS).stream(),
+                dao.searchByStatus(OrderStatus.READY).stream()
+        ).toList();
     }
 
-    public Optional<Order> getOrder(final String name) {
+    public Optional<Order> getOrder(final String orderCode) {
         try {
-            final UUID uuid = UUID.fromString(name);
-            return Optional.empty();
+            return dao.findByUUID(UUID.fromString(orderCode));
         } catch (final IllegalArgumentException e) {
-            return Optional.empty();
+            throw new InvalidOrderCodeException();
         }
     }
 }

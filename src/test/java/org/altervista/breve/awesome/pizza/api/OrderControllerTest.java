@@ -2,8 +2,12 @@ package org.altervista.breve.awesome.pizza.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
+import org.altervista.breve.awesome.pizza.exception.InvalidOrderCodeException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderPizzaException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderQtyException;
+import org.altervista.breve.awesome.pizza.model.Order;
+import org.altervista.breve.awesome.pizza.model.OrderStatus;
+import org.altervista.breve.awesome.pizza.model.Pizza;
 import org.altervista.breve.awesome.pizza.model.request.OrderEntry;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.model.response.SubmitOrderResponse;
@@ -19,12 +23,17 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -108,5 +117,52 @@ class OrderControllerTest {
                 .andExpect(content().string(om.writeValueAsString(new SubmitOrderResponse(AN_UUID))));
 
         verify(orderService).submit(req);
+    }
+
+    @Test
+    public void whenSomeNotCompletedOrdersAreFoundThenShouldReturnTheFoundOrders() throws Exception {
+        final List<Order> expected = List.of(
+                new Order(UUID.randomUUID(), OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7)),
+                new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7))
+        );
+        when(orderService.findNotCompletedOrders()).thenReturn(expected);
+
+        mockMvc.perform(get("/api/v1/order"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(om.writeValueAsString(expected)));
+
+        verify(orderService).findNotCompletedOrders();
+    }
+
+    @Test
+    public void givenAnInvalidOrderCodeThenShouldReturnBadRequest() throws Exception {
+        when(orderService.getOrder(anyString())).thenThrow(InvalidOrderCodeException.class);
+
+        mockMvc.perform(get("/api/v1/order/an-invalid-order-code"))
+                .andExpect(status().isBadRequest());
+
+        verify(orderService).getOrder("an-invalid-order-code");
+    }
+
+    @Test
+    public void givenANotPresentOrderCodeThenShouldReturnNotFound() throws Exception {
+        when(orderService.getOrder(anyString())).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/order/a-not-present-order-code"))
+                .andExpect(status().isNotFound());
+
+        verify(orderService).getOrder("a-not-present-order-code");
+    }
+
+    @Test
+    public void givenAPresentOrderCodeThenShouldReturnTheOrder() throws Exception {
+        final Order expected = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
+        when(orderService.getOrder(anyString())).thenReturn(Optional.of(expected));
+
+        mockMvc.perform(get("/api/v1/order/a-present-order-code"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(om.writeValueAsString(expected)));
+
+        verify(orderService).getOrder("a-present-order-code");
     }
 }

@@ -2,6 +2,7 @@ package org.altervista.breve.awesome.pizza.service;
 
 import org.altervista.breve.awesome.pizza.dao.OrderDao;
 import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
+import org.altervista.breve.awesome.pizza.exception.InvalidOrderCodeException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderPizzaException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderQtyException;
 import org.altervista.breve.awesome.pizza.model.Order;
@@ -19,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,6 +34,10 @@ import static org.mockito.Mockito.when;
 class OrderServiceTest {
 
     private final static UUID AN_UUID = UUID.fromString("21c1bdab-2fa9-424f-84c5-edf207ecba6d");
+
+    private final Order inProgressOrder = new Order(UUID.randomUUID(), OrderStatus.IN_PROGRESS, Map.of(Pizza.DIAVOLA, 7));
+    private final Order readyOrder1 = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
+    private final Order readyOrder2 = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.CAPRICCIOSA, 7));
 
     @Mock
     private UUIDUtils utils;
@@ -128,5 +134,85 @@ class OrderServiceTest {
         assertEquals(AN_UUID, actual);
         verify(utils).get();
         verify(dao).save(expected);
+    }
+
+    @Test
+    public void whenNoInProgressAndNoReadyOrdersArePresentThenShouldReturnEmptyList() {
+        when(dao.searchByStatus(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
+        when(dao.searchByStatus(OrderStatus.READY)).thenReturn(Collections.emptyList());
+
+        final List<Order> actual = sut.findNotCompletedOrders();
+
+        assertEquals(Collections.emptyList(), actual);
+        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
+        verify(dao).searchByStatus(OrderStatus.READY);
+    }
+
+    @Test
+    public void whenNoInProgressAndSomeReadyOrdersArePresentThenShouldReturnOnlyReadyOrders() {
+        when(dao.searchByStatus(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
+        when(dao.searchByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder1, readyOrder2));
+
+        final List<Order> actual = sut.findNotCompletedOrders();
+
+        assertEquals(List.of(readyOrder1, readyOrder2), actual);
+        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
+        verify(dao).searchByStatus(OrderStatus.READY);
+    }
+
+    @Test
+    public void whenAnInProgressAndNoReadyOrdersArePresentThenShouldReturnOnlyTheInProgressOrder() {
+        when(dao.searchByStatus(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
+        when(dao.searchByStatus(OrderStatus.READY)).thenReturn(Collections.emptyList());
+
+        final List<Order> actual = sut.findNotCompletedOrders();
+
+        assertEquals(List.of(inProgressOrder), actual);
+        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
+        verify(dao).searchByStatus(OrderStatus.READY);
+    }
+
+    @Test
+    public void whenAnInProgressAndSomeReadyOrdersArePresentThenShouldReturnAllTheOrders() {
+        when(dao.searchByStatus(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
+        when(dao.searchByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder2, readyOrder1));
+
+        final List<Order> actual = sut.findNotCompletedOrders();
+
+        assertEquals(List.of(inProgressOrder, readyOrder2, readyOrder1), actual);
+        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
+        verify(dao).searchByStatus(OrderStatus.READY);
+    }
+
+    @Test
+    public void givenAnInvalidOrderCodeThenShouldThrowInvalidOrderCodeException() {
+        assertThrows(InvalidOrderCodeException.class, () -> sut.getOrder("an-invalid-order-code"));
+
+        verifyNoInteractions(dao);
+    }
+
+    @Test
+    public void givenANotPresentOrderCodeThenShouldReturnAnEmptyOptional() {
+        when(dao.findByUUID(any(UUID.class))).thenReturn(Optional.empty());
+
+        final Optional<Order> actual = sut.getOrder(AN_UUID.toString());
+
+        assertEquals(Optional.empty(), actual);
+        verify(dao).findByUUID(AN_UUID);
+    }
+
+    @Test
+    public void givenAPresentOrderCodeThenShouldReturnTheOrder() {
+        final Order expected = new Order(AN_UUID, OrderStatus.READY, Map.of(
+                Pizza.MARGHERITA, 7,
+                Pizza.CAPRICCIOSA, 7,
+                Pizza.DIAVOLA, 7
+        ));
+        when(dao.findByUUID(any(UUID.class))).thenReturn(Optional.of(expected));
+
+        final Optional<Order> actual = sut.getOrder(AN_UUID.toString());
+
+        assertEquals(Optional.of(expected), actual);
+        verify(dao).findByUUID(AN_UUID);
     }
 }
