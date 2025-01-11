@@ -4,6 +4,10 @@ awesome:
       name: Awesome Pizza
       version: 0.0.1
 
+server:
+  error:
+    include-message: always
+
 logging:
   level:
     root: INFO
