@@ -1,0 +1,14 @@
+awesome:
+  pizza:
+    api:
+      name: Awesome Pizza
+      version: 0.0.1
+
+logging:
+  level:
+    root: INFO
+    org:
+      altervista:
+        breve:
+          awesome:
+            pizza: DEBUG
