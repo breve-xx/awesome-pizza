@@ -20,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +39,11 @@ import static org.mockito.Mockito.when;
 class OrderServiceTest {
 
     private final static UUID AN_UUID = UUID.fromString("21c1bdab-2fa9-424f-84c5-edf207ecba6d");
+    private final static LocalDateTime SOMEWHERE_IN_TIME = LocalDateTime.of(1969, 7, 20, 20, 17);
 
-    private final Order inProgressOrder = new Order(UUID.randomUUID(), OrderStatus.IN_PROGRESS, Map.of(Pizza.DIAVOLA, 7));
-    private final Order readyOrder1 = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
-    private final Order readyOrder2 = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.CAPRICCIOSA, 7));
+    private final Order inProgressOrder = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.IN_PROGRESS, Map.of(Pizza.DIAVOLA, 7));
+    private final Order readyOrder1 = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
+    private final Order readyOrder2 = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.CAPRICCIOSA, 7));
 
     @Mock
     private UUIDUtils utils;
@@ -103,7 +105,7 @@ class OrderServiceTest {
     @Test
     public void givenARequestWithDuplicatedNamesInTheOrderThenShouldSaveAnOrderCollapsingThem() {
         when(utils.get()).thenReturn(AN_UUID);
-        final Order expected = new Order(AN_UUID, OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
+        final Order expected = new Order(AN_UUID, SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
         when(repository.save(any(Order.class))).thenReturn(expected);
 
         final SubmitOrderRequest req = new SubmitOrderRequest(List.of(
@@ -121,7 +123,7 @@ class OrderServiceTest {
     @Test
     public void givenARequestThenShouldSaveAnOrder() {
         when(utils.get()).thenReturn(AN_UUID);
-        final Order expected = new Order(AN_UUID, OrderStatus.READY, Map.of(
+        final Order expected = new Order(AN_UUID, SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(
                 Pizza.MARGHERITA, 7,
                 Pizza.CAPRICCIOSA, 7,
                 Pizza.DIAVOLA, 7
@@ -142,50 +144,50 @@ class OrderServiceTest {
 
     @Test
     public void whenNoInProgressAndNoReadyOrdersArePresentThenShouldReturnEmptyList() {
-        when(repository.findByStatus(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
-        when(repository.findByStatus(OrderStatus.READY)).thenReturn(Collections.emptyList());
+        when(repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
+        when(repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.READY)).thenReturn(Collections.emptyList());
 
         final List<Order> actual = sut.findNotCompletedOrders();
 
         assertEquals(Collections.emptyList(), actual);
-        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
-        verify(repository).findByStatus(OrderStatus.READY);
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS);
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.READY);
     }
 
     @Test
     public void whenNoInProgressAndSomeReadyOrdersArePresentThenShouldReturnOnlyReadyOrders() {
-        when(repository.findByStatus(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
-        when(repository.findByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder1, readyOrder2));
+        when(repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
+        when(repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.READY)).thenReturn(List.of(readyOrder1, readyOrder2));
 
         final List<Order> actual = sut.findNotCompletedOrders();
 
         assertEquals(List.of(readyOrder1, readyOrder2), actual);
-        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
-        verify(repository).findByStatus(OrderStatus.READY);
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS);
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.READY);
     }
 
     @Test
     public void whenAnInProgressAndNoReadyOrdersArePresentThenShouldReturnOnlyTheInProgressOrder() {
-        when(repository.findByStatus(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
-        when(repository.findByStatus(OrderStatus.READY)).thenReturn(Collections.emptyList());
+        when(repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
+        when(repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.READY)).thenReturn(Collections.emptyList());
 
         final List<Order> actual = sut.findNotCompletedOrders();
 
         assertEquals(List.of(inProgressOrder), actual);
-        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
-        verify(repository).findByStatus(OrderStatus.READY);
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS);
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.READY);
     }
 
     @Test
     public void whenAnInProgressAndSomeReadyOrdersArePresentThenShouldReturnAllTheOrders() {
-        when(repository.findByStatus(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
-        when(repository.findByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder2, readyOrder1));
+        when(repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
+        when(repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.READY)).thenReturn(List.of(readyOrder2, readyOrder1));
 
         final List<Order> actual = sut.findNotCompletedOrders();
 
         assertEquals(List.of(inProgressOrder, readyOrder2, readyOrder1), actual);
-        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
-        verify(repository).findByStatus(OrderStatus.READY);
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS);
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.READY);
     }
 
     @Test
@@ -207,7 +209,7 @@ class OrderServiceTest {
 
     @Test
     public void givenAPresentOrderCodeThenShouldReturnTheOrder() {
-        final Order expected = new Order(AN_UUID, OrderStatus.READY, Map.of(
+        final Order expected = new Order(AN_UUID, SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(
                 Pizza.MARGHERITA, 7,
                 Pizza.CAPRICCIOSA, 7,
                 Pizza.DIAVOLA, 7
@@ -223,7 +225,7 @@ class OrderServiceTest {
     @ParameterizedTest
     @EnumSource(OrderStatus.class)
     public void givenAnOrderAndAStatusWhenTheOrderIsAlreadyInThatStatusThenShouldDoNothing(final OrderStatus status) {
-        final Order order = new Order(UUID.randomUUID(), status, Map.of(Pizza.MARGHERITA, 7));
+        final Order order = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, status, Map.of(Pizza.MARGHERITA, 7));
 
         sut.updateStatus(order, status);
 
@@ -233,7 +235,7 @@ class OrderServiceTest {
     @ParameterizedTest
     @EnumSource(value = OrderStatus.class, names = {"IN_PROGRESS", "DELIVERED"})
     public void givenAnOrderNotInReadyStatusWhenTryingToSetReadyStatusThenShouldThrowInvalidStatusUpdateException(final OrderStatus status) {
-        final Order order = new Order(UUID.randomUUID(), status, Map.of(Pizza.MARGHERITA, 7));
+        final Order order = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, status, Map.of(Pizza.MARGHERITA, 7));
 
         assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.READY));
 
@@ -242,7 +244,7 @@ class OrderServiceTest {
 
     @Test
     public void givenADeliveredOrderWhenTryingToSetInProgressStatusThenShouldThrowInvalidStatusUpdateException() {
-        final Order order = new Order(UUID.randomUUID(), OrderStatus.DELIVERED, Map.of(Pizza.MARGHERITA, 7));
+        final Order order = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.DELIVERED, Map.of(Pizza.MARGHERITA, 7));
 
         assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.IN_PROGRESS));
 
@@ -251,29 +253,29 @@ class OrderServiceTest {
 
     @Test
     public void givenAReadyOrderWhenTryingToSetInProgressStatusAndAnotherOrderHasInProgressStatusThenShouldThrowInvalidStatusUpdateException() {
-        final Order order = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
-        when(repository.findByStatus(any(OrderStatus.class))).thenReturn(Collections.singletonList(inProgressOrder));
+        final Order order = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
+        when(repository.findByStatusOrderBySubmittedAtAsc(any(OrderStatus.class))).thenReturn(Collections.singletonList(inProgressOrder));
 
         assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.IN_PROGRESS));
 
-        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS);
         verifyNoMoreInteractions(repository);
     }
 
     @Test
     public void givenAReadyOrderWhenTryingToSetInProgressStatusAndNoOrderHasInProgressStatusThenShouldSaveTheOrderWithInProgressStatus() {
-        final Order order = new Order(AN_UUID, OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
-        when(repository.findByStatus(any(OrderStatus.class))).thenReturn(Collections.emptyList());
+        final Order order = new Order(AN_UUID, SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
+        when(repository.findByStatusOrderBySubmittedAtAsc(any(OrderStatus.class))).thenReturn(Collections.emptyList());
 
         sut.updateStatus(order, OrderStatus.IN_PROGRESS);
 
-        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
-        verify(repository).save(new Order(AN_UUID, OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7)));
+        verify(repository).findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS);
+        verify(repository).save(new Order(AN_UUID, SOMEWHERE_IN_TIME, OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7)));
     }
 
     @Test
     public void givenAReadyOrderWhenTryingToSetDeliveredStatusThenShouldThrowInvalidStatusUpdateException() {
-        final Order order = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
+        final Order order = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
 
         assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.DELIVERED));
 
@@ -282,10 +284,10 @@ class OrderServiceTest {
 
     @Test
     public void givenAnInProgressOrderWhenTryingToSetDeliveredStatusThenShouldSaveTheOrderWithDeliveredStatus() {
-        final Order order = new Order(AN_UUID, OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7));
+        final Order order = new Order(AN_UUID, SOMEWHERE_IN_TIME, OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7));
 
         sut.updateStatus(order, OrderStatus.DELIVERED);
 
-        verify(repository).save(new Order(AN_UUID, OrderStatus.DELIVERED, Map.of(Pizza.MARGHERITA, 7)));
+        verify(repository).save(new Order(AN_UUID, SOMEWHERE_IN_TIME, OrderStatus.DELIVERED, Map.of(Pizza.MARGHERITA, 7)));
     }
 }

@@ -14,6 +14,7 @@ import org.altervista.breve.awesome.pizza.utils.UUIDUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,14 +48,14 @@ public class OrderService {
             pizzas.putIfAbsent(pizza, qty);
         });
 
-        return repository.save(new Order(utils.get(), OrderStatus.READY, pizzas)).id();
+        return repository.save(new Order(utils.get(), LocalDateTime.now(), OrderStatus.READY, pizzas)).id();
     }
 
 
     public List<Order> findNotCompletedOrders() {
         return Stream.concat(
-                repository.findByStatus(OrderStatus.IN_PROGRESS).stream(),
-                repository.findByStatus(OrderStatus.READY).stream()
+                repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS).stream(),
+                repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.READY).stream()
         ).toList();
     }
 
@@ -71,15 +72,15 @@ public class OrderService {
             switch (status) {
                 case READY -> throw new InvalidStatusUpdateException();
                 case IN_PROGRESS -> {
-                    if (order.status() == OrderStatus.READY && repository.findByStatus(OrderStatus.IN_PROGRESS).isEmpty()) {
-                        repository.save(new Order(order.id(), OrderStatus.IN_PROGRESS, order.pizzas()));
+                    if (order.status() == OrderStatus.READY && repository.findByStatusOrderBySubmittedAtAsc(OrderStatus.IN_PROGRESS).isEmpty()) {
+                        repository.save(new Order(order.id(), order.submittedAt(), OrderStatus.IN_PROGRESS, order.pizzas()));
                         break;
                     }
                     throw new InvalidStatusUpdateException();
                 }
                 case DELIVERED -> {
                     if (order.status() == OrderStatus.IN_PROGRESS) {
-                        repository.save(new Order(order.id(), OrderStatus.DELIVERED, order.pizzas()));
+                        repository.save(new Order(order.id(), order.submittedAt(), OrderStatus.DELIVERED, order.pizzas()));
                         break;
                     }
                     throw new InvalidStatusUpdateException();

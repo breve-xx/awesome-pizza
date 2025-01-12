@@ -9,5 +9,5 @@ import java.util.UUID;
 
 public interface OrderRepository extends MongoRepository<Order, UUID> {
 
-    List<Order> findByStatus(OrderStatus status);
+    List<Order> findByStatusOrderBySubmittedAtAsc(OrderStatus status);
 }

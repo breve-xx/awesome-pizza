@@ -23,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class OrderControllerTest {
 
     private final static UUID AN_UUID = UUID.fromString("21c1bdab-2fa9-424f-84c5-edf207ecba6d");
+    private final static LocalDateTime SOMEWHERE_IN_TIME = LocalDateTime.of(1969, 7, 20, 20, 17);
 
     @Autowired
     private MockMvc mockMvc;
@@ -127,8 +129,8 @@ class OrderControllerTest {
     @Test
     public void whenSomeNotCompletedOrdersAreFoundThenShouldReturnTheFoundOrders() throws Exception {
         final List<Order> expected = List.of(
-                new Order(UUID.randomUUID(), OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7)),
-                new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7))
+                new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7)),
+                new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7))
         );
         when(orderService.findNotCompletedOrders()).thenReturn(expected);
 
@@ -161,7 +163,7 @@ class OrderControllerTest {
 
     @Test
     public void givenAPresentOrderCodeThenShouldReturnTheOrder() throws Exception {
-        final Order expected = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
+        final Order expected = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
         when(orderService.getOrder(anyString())).thenReturn(Optional.of(expected));
 
         mockMvc.perform(get("/api/v1/order/a-present-order-code"))
@@ -203,7 +205,7 @@ class OrderControllerTest {
 
     @Test
     public void givenAPresentOrderCodeAndAStatusWhenTheStatusCannotBeSetThenShouldReturnUnprocessableEntity() throws Exception {
-        final Order expected = new Order(UUID.randomUUID(), OrderStatus.IN_PROGRESS, Map.of(Pizza.DIAVOLA, 7));
+        final Order expected = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.IN_PROGRESS, Map.of(Pizza.DIAVOLA, 7));
         when(orderService.getOrder(anyString())).thenReturn(Optional.of(expected));
         doThrow(InvalidStatusUpdateException.class)
                 .when(orderService)
@@ -218,7 +220,7 @@ class OrderControllerTest {
 
     @Test
     public void givenAPresentOrderCodeAndAStatusThenShouldUpdateTheStatusAndReturnOk() throws Exception {
-        final Order expected = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
+        final Order expected = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
         when(orderService.getOrder(anyString())).thenReturn(Optional.of(expected));
         doNothing()
                 .when(orderService)
