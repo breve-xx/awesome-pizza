@@ -52,6 +52,7 @@ public class OrderController {
     @Operation(summary = "Are you hungry?", description = "Use the provided orderCode to keep an eye on your order status")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Here's what you ordered and its status, we'll try to deliver it as soon as possible!"),
+            @ApiResponse(responseCode = "400", description = "We can't recognize this code, are you sure you ordered from us?!"),
             @ApiResponse(responseCode = "404", description = "Oops, we can't find your order, are you sure the orderCode is correct?!")
     })
     public ResponseEntity<Order> get(@PathVariable final String orderCode) {
@@ -64,6 +65,7 @@ public class OrderController {
     @Operation(summary = "Let's work on it", description = "Peek a READY order or deliver an IN_PROGRESS order, just remember: one at a time!")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "As my father always says: you've done half your duty..."),
+            @ApiResponse(responseCode = "400", description = "We don't recognize the code or the status, are you sure you work from us?!"),
             @ApiResponse(responseCode = "404", description = "Oops, we can't find this order, are you sure the orderCode is correct?!"),
             @ApiResponse(responseCode = "422", description = "You shall not pass! [rules: 1. Peek the READY orders one at a time!, 2. Deliver only the IN_PROGRESS order, 3. Never go back to READY]")
     })

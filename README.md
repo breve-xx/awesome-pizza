@@ -107,6 +107,7 @@ Retrieve the status of a specific order using its `orderCode`.
     - `orderCode` (path, string, required): The code of the order to query.
 - **Responses**:
     - `200 OK`: Returns the `Order` object with details and status.
+    - `400 Bad Request`: The request cannot be processed.
     - `404 Not Found`: Order not found.
 
 #### PATCH: Let's work on it
@@ -118,6 +119,7 @@ Update the status of an order using its `orderCode`.
     - `status` (query, string, required): The new status. Allowed values: `READY`, `IN_PROGRESS`, `DELIVERED`.
 - **Responses**:
     - `200 OK`: Status successfully updated.
+    - `400 Bad Request`: The request cannot be processed.
     - `422 Unprocessable Entity`: Update rules violation.
     - `404 Not Found`: Order not found.
 
