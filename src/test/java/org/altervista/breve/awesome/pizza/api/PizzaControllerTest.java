@@ -22,7 +22,7 @@ class PizzaControllerTest {
 
     @Test
     public void shouldReturnAllThePizzas() throws Exception {
-        mockMvc.perform(get("/api/v1/pizza"))
+        mockMvc.perform(get("/api/v1/pizzas"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("[\"MARGHERITA\",\"CAPRICCIOSA\",\"DIAVOLA\"]"));
     }

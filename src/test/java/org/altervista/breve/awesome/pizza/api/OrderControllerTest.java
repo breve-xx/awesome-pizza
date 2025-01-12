@@ -63,7 +63,7 @@ class OrderControllerTest {
 
     @Test
     public void givenARequestWithMissingBodyWhenSubmittingAnOrderThenShouldReturnBadRequest() throws Exception {
-        mockMvc.perform(post("/api/v1/order"))
+        mockMvc.perform(post("/api/v1/orders"))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(orderService);
@@ -75,7 +75,7 @@ class OrderControllerTest {
 
         final SubmitOrderRequest req = new SubmitOrderRequest(Collections.emptyList());
 
-        mockMvc.perform(post("/api/v1/order")
+        mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsBytes(new SubmitOrderRequest(Collections.emptyList()))))
                 .andExpect(status().isBadRequest());
@@ -89,7 +89,7 @@ class OrderControllerTest {
 
         final SubmitOrderRequest req = new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-not-supported-pizza-name", 7)));
 
-        mockMvc.perform(post("/api/v1/order")
+        mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsBytes(req)))
                 .andExpect(status().isBadRequest());
@@ -103,7 +103,7 @@ class OrderControllerTest {
 
         final SubmitOrderRequest req = new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-pizza-name", -7)));
 
-        mockMvc.perform(post("/api/v1/order")
+        mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsBytes(req)))
                 .andExpect(status().isBadRequest());
@@ -117,7 +117,7 @@ class OrderControllerTest {
 
         final SubmitOrderRequest req = new SubmitOrderRequest(Collections.singletonList(new OrderEntry("a-pizza-name", 7)));
 
-        mockMvc.perform(post("/api/v1/order")
+        mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsBytes(req)))
                 .andExpect(status().isOk())
@@ -134,7 +134,7 @@ class OrderControllerTest {
         );
         when(orderService.findNotCompletedOrders()).thenReturn(expected);
 
-        mockMvc.perform(get("/api/v1/order"))
+        mockMvc.perform(get("/api/v1/orders"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(om.writeValueAsString(expected)));
 
@@ -145,7 +145,7 @@ class OrderControllerTest {
     public void givenAnInvalidOrderCodeThenShouldReturnBadRequest() throws Exception {
         when(orderService.getOrder(anyString())).thenThrow(InvalidOrderCodeException.class);
 
-        mockMvc.perform(get("/api/v1/order/an-invalid-order-code"))
+        mockMvc.perform(get("/api/v1/orders/an-invalid-order-code"))
                 .andExpect(status().isBadRequest());
 
         verify(orderService).getOrder("an-invalid-order-code");
@@ -155,7 +155,7 @@ class OrderControllerTest {
     public void givenANotPresentOrderCodeThenShouldReturnNotFound() throws Exception {
         when(orderService.getOrder(anyString())).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/v1/order/a-not-present-order-code"))
+        mockMvc.perform(get("/api/v1/orders/a-not-present-order-code"))
                 .andExpect(status().isNotFound());
 
         verify(orderService).getOrder("a-not-present-order-code");
@@ -166,7 +166,7 @@ class OrderControllerTest {
         final Order expected = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
         when(orderService.getOrder(anyString())).thenReturn(Optional.of(expected));
 
-        mockMvc.perform(get("/api/v1/order/a-present-order-code"))
+        mockMvc.perform(get("/api/v1/orders/a-present-order-code"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(om.writeValueAsString(expected)));
 
@@ -175,7 +175,7 @@ class OrderControllerTest {
 
     @Test
     public void givenAnOrderCodeAndAnInvalidStatusThenShouldReturnBadRequest() throws Exception {
-        mockMvc.perform(patch("/api/v1/order/a-valid-order-code?status=an-invalid-status"))
+        mockMvc.perform(patch("/api/v1/orders/a-valid-order-code?status=an-invalid-status"))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(orderService);
@@ -185,7 +185,7 @@ class OrderControllerTest {
     public void givenAnInvalidOrderCodeAndAStatusThenShouldReturnBadRequest() throws Exception {
         when(orderService.getOrder(anyString())).thenThrow(InvalidOrderCodeException.class);
 
-        mockMvc.perform(patch("/api/v1/order/an-invalid-order-code?status=IN_PROGRESS"))
+        mockMvc.perform(patch("/api/v1/orders/an-invalid-order-code?status=IN_PROGRESS"))
                 .andExpect(status().isBadRequest());
 
         verify(orderService).getOrder("an-invalid-order-code");
@@ -196,7 +196,7 @@ class OrderControllerTest {
     public void givenANotPresentOrderCodeAndAStatusThenShouldReturnNotFound() throws Exception {
         when(orderService.getOrder(anyString())).thenReturn(Optional.empty());
 
-        mockMvc.perform(patch("/api/v1/order/a-not-present-order-code?status=IN_PROGRESS"))
+        mockMvc.perform(patch("/api/v1/orders/a-not-present-order-code?status=IN_PROGRESS"))
                 .andExpect(status().isNotFound());
 
         verify(orderService).getOrder("a-not-present-order-code");
@@ -211,7 +211,7 @@ class OrderControllerTest {
                 .when(orderService)
                 .updateStatus(any(Order.class), any(OrderStatus.class));
 
-        mockMvc.perform(patch("/api/v1/order/a-present-order-code?status=IN_PROGRESS"))
+        mockMvc.perform(patch("/api/v1/orders/a-present-order-code?status=IN_PROGRESS"))
                 .andExpect(status().isUnprocessableEntity());
 
         verify(orderService).getOrder("a-present-order-code");
@@ -226,7 +226,7 @@ class OrderControllerTest {
                 .when(orderService)
                 .updateStatus(any(Order.class), any(OrderStatus.class));
 
-        mockMvc.perform(patch("/api/v1/order/a-present-order-code?status=IN_PROGRESS"))
+        mockMvc.perform(patch("/api/v1/orders/a-present-order-code?status=IN_PROGRESS"))
                 .andExpect(status().isOk());
 
         verify(orderService).getOrder("a-present-order-code");

@@ -75,7 +75,7 @@ Displays basic API information.
 
 ---
 
-### `/api/v1/order`
+### `/api/v1/orders`
 
 #### GET: It's your turn now!
 Retrieve the next available order in the queue if no order is currently in progress.
@@ -97,7 +97,7 @@ Add your favorite pizza to the queue and get it delivered as soon as possible.
 
 ---
 
-### `/api/v1/order/{orderCode}`
+### `/api/v1/orders/{orderCode}`
 
 #### GET: Are you hungry?
 Retrieve the status of a specific order using its `orderCode`.
@@ -125,7 +125,7 @@ Update the status of an order using its `orderCode`.
 
 ---
 
-### `/api/v1/pizza`
+### `/api/v1/pizzas`
 
 #### GET: All the available Pizzas
 Retrieve the list of pizzas available for ordering.
@@ -171,6 +171,6 @@ Represents a single pizza entry in an order.
 ---
 
 ## Rules for Updating Orders
-1. Peek `READY` orders one at a time.
+1. Pick `READY` orders one at a time.
 2. Deliver only `IN_PROGRESS` orders.
 3. Never revert an order back to `READY`.
