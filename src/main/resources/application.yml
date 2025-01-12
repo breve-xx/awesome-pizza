@@ -8,6 +8,11 @@ server:
   error:
     include-message: always
 
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/awesome-pizza-mongo
+
 logging:
   level:
     root: INFO

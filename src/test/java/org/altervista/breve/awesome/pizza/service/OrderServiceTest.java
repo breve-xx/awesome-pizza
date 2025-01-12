@@ -1,6 +1,5 @@
 package org.altervista.breve.awesome.pizza.service;
 
-import org.altervista.breve.awesome.pizza.dao.OrderDao;
 import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderCodeException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderPizzaException;
@@ -11,6 +10,7 @@ import org.altervista.breve.awesome.pizza.model.OrderStatus;
 import org.altervista.breve.awesome.pizza.model.Pizza;
 import org.altervista.breve.awesome.pizza.model.request.OrderEntry;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
+import org.altervista.breve.awesome.pizza.repository.OrderRepository;
 import org.altervista.breve.awesome.pizza.utils.UUIDUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +47,7 @@ class OrderServiceTest {
     private UUIDUtils utils;
 
     @Mock
-    private OrderDao dao;
+    private OrderRepository repository;
 
     @InjectMocks
     private OrderService sut;
@@ -57,7 +57,7 @@ class OrderServiceTest {
         assertThrows(EmptyOrderException.class, () -> sut.submit(null));
 
         verifyNoInteractions(utils);
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -67,7 +67,7 @@ class OrderServiceTest {
         assertThrows(EmptyOrderException.class, () -> sut.submit(req));
 
         verifyNoInteractions(utils);
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -77,7 +77,7 @@ class OrderServiceTest {
         assertThrows(EmptyOrderException.class, () -> sut.submit(req));
 
         verifyNoInteractions(utils);
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -87,7 +87,7 @@ class OrderServiceTest {
         assertThrows(InvalidOrderPizzaException.class, () -> sut.submit(req));
 
         verifyNoInteractions(utils);
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -97,14 +97,14 @@ class OrderServiceTest {
         assertThrows(InvalidOrderQtyException.class, () -> sut.submit(req));
 
         verifyNoInteractions(utils);
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @Test
     public void givenARequestWithDuplicatedNamesInTheOrderThenShouldSaveAnOrderCollapsingThem() {
         when(utils.get()).thenReturn(AN_UUID);
         final Order expected = new Order(AN_UUID, OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
-        when(dao.save(any(Order.class))).thenReturn(expected);
+        when(repository.save(any(Order.class))).thenReturn(expected);
 
         final SubmitOrderRequest req = new SubmitOrderRequest(List.of(
                 new OrderEntry("diavola", 2),
@@ -115,7 +115,7 @@ class OrderServiceTest {
 
         assertEquals(AN_UUID, actual);
         verify(utils).get();
-        verify(dao).save(expected);
+        verify(repository).save(expected);
     }
 
     @Test
@@ -126,7 +126,7 @@ class OrderServiceTest {
                 Pizza.CAPRICCIOSA, 7,
                 Pizza.DIAVOLA, 7
         ));
-        when(dao.save(any(Order.class))).thenReturn(expected);
+        when(repository.save(any(Order.class))).thenReturn(expected);
 
         final SubmitOrderRequest req = new SubmitOrderRequest(List.of(
                 new OrderEntry("margherita", 7),
@@ -137,72 +137,72 @@ class OrderServiceTest {
 
         assertEquals(AN_UUID, actual);
         verify(utils).get();
-        verify(dao).save(expected);
+        verify(repository).save(expected);
     }
 
     @Test
     public void whenNoInProgressAndNoReadyOrdersArePresentThenShouldReturnEmptyList() {
-        when(dao.searchByStatus(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
-        when(dao.searchByStatus(OrderStatus.READY)).thenReturn(Collections.emptyList());
+        when(repository.findByStatus(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
+        when(repository.findByStatus(OrderStatus.READY)).thenReturn(Collections.emptyList());
 
         final List<Order> actual = sut.findNotCompletedOrders();
 
         assertEquals(Collections.emptyList(), actual);
-        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
-        verify(dao).searchByStatus(OrderStatus.READY);
+        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
+        verify(repository).findByStatus(OrderStatus.READY);
     }
 
     @Test
     public void whenNoInProgressAndSomeReadyOrdersArePresentThenShouldReturnOnlyReadyOrders() {
-        when(dao.searchByStatus(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
-        when(dao.searchByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder1, readyOrder2));
+        when(repository.findByStatus(OrderStatus.IN_PROGRESS)).thenReturn(Collections.emptyList());
+        when(repository.findByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder1, readyOrder2));
 
         final List<Order> actual = sut.findNotCompletedOrders();
 
         assertEquals(List.of(readyOrder1, readyOrder2), actual);
-        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
-        verify(dao).searchByStatus(OrderStatus.READY);
+        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
+        verify(repository).findByStatus(OrderStatus.READY);
     }
 
     @Test
     public void whenAnInProgressAndNoReadyOrdersArePresentThenShouldReturnOnlyTheInProgressOrder() {
-        when(dao.searchByStatus(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
-        when(dao.searchByStatus(OrderStatus.READY)).thenReturn(Collections.emptyList());
+        when(repository.findByStatus(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
+        when(repository.findByStatus(OrderStatus.READY)).thenReturn(Collections.emptyList());
 
         final List<Order> actual = sut.findNotCompletedOrders();
 
         assertEquals(List.of(inProgressOrder), actual);
-        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
-        verify(dao).searchByStatus(OrderStatus.READY);
+        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
+        verify(repository).findByStatus(OrderStatus.READY);
     }
 
     @Test
     public void whenAnInProgressAndSomeReadyOrdersArePresentThenShouldReturnAllTheOrders() {
-        when(dao.searchByStatus(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
-        when(dao.searchByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder2, readyOrder1));
+        when(repository.findByStatus(OrderStatus.IN_PROGRESS)).thenReturn(List.of(inProgressOrder));
+        when(repository.findByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder2, readyOrder1));
 
         final List<Order> actual = sut.findNotCompletedOrders();
 
         assertEquals(List.of(inProgressOrder, readyOrder2, readyOrder1), actual);
-        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
-        verify(dao).searchByStatus(OrderStatus.READY);
+        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
+        verify(repository).findByStatus(OrderStatus.READY);
     }
 
     @Test
     public void givenAnInvalidOrderCodeThenShouldThrowInvalidOrderCodeException() {
         assertThrows(InvalidOrderCodeException.class, () -> sut.getOrder("an-invalid-order-code"));
 
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @Test
     public void givenANotPresentOrderCodeThenShouldReturnAnEmptyOptional() {
-        when(dao.findByUUID(any(UUID.class))).thenReturn(Optional.empty());
+        when(repository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
         final Optional<Order> actual = sut.getOrder(AN_UUID.toString());
 
         assertEquals(Optional.empty(), actual);
-        verify(dao).findByUUID(AN_UUID);
+        verify(repository).findById(AN_UUID);
     }
 
     @Test
@@ -212,12 +212,12 @@ class OrderServiceTest {
                 Pizza.CAPRICCIOSA, 7,
                 Pizza.DIAVOLA, 7
         ));
-        when(dao.findByUUID(any(UUID.class))).thenReturn(Optional.of(expected));
+        when(repository.findById(any(UUID.class))).thenReturn(Optional.of(expected));
 
         final Optional<Order> actual = sut.getOrder(AN_UUID.toString());
 
         assertEquals(Optional.of(expected), actual);
-        verify(dao).findByUUID(AN_UUID);
+        verify(repository).findById(AN_UUID);
     }
 
     @ParameterizedTest
@@ -227,7 +227,7 @@ class OrderServiceTest {
 
         sut.updateStatus(order, status);
 
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @ParameterizedTest
@@ -237,7 +237,7 @@ class OrderServiceTest {
 
         assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.READY));
 
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -246,29 +246,29 @@ class OrderServiceTest {
 
         assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.IN_PROGRESS));
 
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @Test
     public void givenAReadyOrderWhenTryingToSetInProgressStatusAndAnotherOrderHasInProgressStatusThenShouldThrowInvalidStatusUpdateException() {
         final Order order = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
-        when(dao.searchByStatus(any(OrderStatus.class))).thenReturn(Collections.singletonList(inProgressOrder));
+        when(repository.findByStatus(any(OrderStatus.class))).thenReturn(Collections.singletonList(inProgressOrder));
 
         assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.IN_PROGRESS));
 
-        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
-        verifyNoMoreInteractions(dao);
+        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
+        verifyNoMoreInteractions(repository);
     }
 
     @Test
     public void givenAReadyOrderWhenTryingToSetInProgressStatusAndNoOrderHasInProgressStatusThenShouldSaveTheOrderWithInProgressStatus() {
         final Order order = new Order(AN_UUID, OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
-        when(dao.searchByStatus(any(OrderStatus.class))).thenReturn(Collections.emptyList());
+        when(repository.findByStatus(any(OrderStatus.class))).thenReturn(Collections.emptyList());
 
         sut.updateStatus(order, OrderStatus.IN_PROGRESS);
 
-        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
-        verify(dao).save(new Order(AN_UUID, OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7)));
+        verify(repository).findByStatus(OrderStatus.IN_PROGRESS);
+        verify(repository).save(new Order(AN_UUID, OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7)));
     }
 
     @Test
@@ -277,7 +277,7 @@ class OrderServiceTest {
 
         assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.DELIVERED));
 
-        verifyNoInteractions(dao);
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -286,6 +286,6 @@ class OrderServiceTest {
 
         sut.updateStatus(order, OrderStatus.DELIVERED);
 
-        verify(dao).save(new Order(AN_UUID, OrderStatus.DELIVERED, Map.of(Pizza.MARGHERITA, 7)));
+        verify(repository).save(new Order(AN_UUID, OrderStatus.DELIVERED, Map.of(Pizza.MARGHERITA, 7)));
     }
 }

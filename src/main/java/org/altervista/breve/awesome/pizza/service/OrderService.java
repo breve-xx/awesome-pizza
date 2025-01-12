@@ -1,6 +1,5 @@
 package org.altervista.breve.awesome.pizza.service;
 
-import org.altervista.breve.awesome.pizza.dao.OrderDao;
 import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderCodeException;
 import org.altervista.breve.awesome.pizza.exception.InvalidStatusUpdateException;
@@ -10,6 +9,7 @@ import org.altervista.breve.awesome.pizza.model.OrderQty;
 import org.altervista.breve.awesome.pizza.model.OrderStatus;
 import org.altervista.breve.awesome.pizza.model.Pizza;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
+import org.altervista.breve.awesome.pizza.repository.OrderRepository;
 import org.altervista.breve.awesome.pizza.utils.UUIDUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,12 +25,12 @@ import java.util.stream.Stream;
 public class OrderService {
 
     private final UUIDUtils utils;
-    private final OrderDao dao;
+    private final OrderRepository repository;
 
     @Autowired
-    public OrderService(UUIDUtils utils, OrderDao dao) {
+    public OrderService(UUIDUtils utils, OrderRepository repository) {
         this.utils = utils;
-        this.dao = dao;
+        this.repository = repository;
     }
 
     public UUID submit(final SubmitOrderRequest request) {
@@ -47,20 +47,20 @@ public class OrderService {
             pizzas.putIfAbsent(pizza, qty);
         });
 
-        return dao.save(new Order(utils.get(), OrderStatus.READY, pizzas)).id();
+        return repository.save(new Order(utils.get(), OrderStatus.READY, pizzas)).id();
     }
 
 
     public List<Order> findNotCompletedOrders() {
         return Stream.concat(
-                dao.searchByStatus(OrderStatus.IN_PROGRESS).stream(),
-                dao.searchByStatus(OrderStatus.READY).stream()
+                repository.findByStatus(OrderStatus.IN_PROGRESS).stream(),
+                repository.findByStatus(OrderStatus.READY).stream()
         ).toList();
     }
 
     public Optional<Order> getOrder(final String orderCode) {
         try {
-            return dao.findByUUID(UUID.fromString(orderCode));
+            return repository.findById(UUID.fromString(orderCode));
         } catch (final IllegalArgumentException e) {
             throw new InvalidOrderCodeException();
         }
@@ -71,15 +71,15 @@ public class OrderService {
             switch (status) {
                 case READY -> throw new InvalidStatusUpdateException();
                 case IN_PROGRESS -> {
-                    if (order.status() == OrderStatus.READY && dao.searchByStatus(OrderStatus.IN_PROGRESS).isEmpty()) {
-                        dao.save(new Order(order.id(), OrderStatus.IN_PROGRESS, order.pizzas()));
+                    if (order.status() == OrderStatus.READY && repository.findByStatus(OrderStatus.IN_PROGRESS).isEmpty()) {
+                        repository.save(new Order(order.id(), OrderStatus.IN_PROGRESS, order.pizzas()));
                         break;
                     }
                     throw new InvalidStatusUpdateException();
                 }
                 case DELIVERED -> {
                     if (order.status() == OrderStatus.IN_PROGRESS) {
-                        dao.save(new Order(order.id(), OrderStatus.DELIVERED, order.pizzas()));
+                        repository.save(new Order(order.id(), OrderStatus.DELIVERED, order.pizzas()));
                         break;
                     }
                     throw new InvalidStatusUpdateException();
