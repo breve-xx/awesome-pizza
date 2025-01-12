@@ -3,6 +3,7 @@ package org.altervista.breve.awesome.pizza.service;
 import org.altervista.breve.awesome.pizza.dao.OrderDao;
 import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderCodeException;
+import org.altervista.breve.awesome.pizza.exception.InvalidStatusUpdateException;
 import org.altervista.breve.awesome.pizza.model.Order;
 import org.altervista.breve.awesome.pizza.model.OrderPizza;
 import org.altervista.breve.awesome.pizza.model.OrderQty;
@@ -62,6 +63,28 @@ public class OrderService {
             return dao.findByUUID(UUID.fromString(orderCode));
         } catch (final IllegalArgumentException e) {
             throw new InvalidOrderCodeException();
+        }
+    }
+
+    public void updateStatus(final Order order, final OrderStatus status) {
+        if (order.status() != status) {
+            switch (status) {
+                case READY -> throw new InvalidStatusUpdateException();
+                case IN_PROGRESS -> {
+                    if (order.status() == OrderStatus.READY && dao.searchByStatus(OrderStatus.IN_PROGRESS).isEmpty()) {
+                        dao.save(new Order(order.id(), OrderStatus.IN_PROGRESS, order.pizzas()));
+                        break;
+                    }
+                    throw new InvalidStatusUpdateException();
+                }
+                case DELIVERED -> {
+                    if (order.status() == OrderStatus.IN_PROGRESS) {
+                        dao.save(new Order(order.id(), OrderStatus.DELIVERED, order.pizzas()));
+                        break;
+                    }
+                    throw new InvalidStatusUpdateException();
+                }
+            }
         }
     }
 }

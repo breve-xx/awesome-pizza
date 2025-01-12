@@ -5,6 +5,7 @@ import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderCodeException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderPizzaException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderQtyException;
+import org.altervista.breve.awesome.pizza.exception.InvalidStatusUpdateException;
 import org.altervista.breve.awesome.pizza.model.Order;
 import org.altervista.breve.awesome.pizza.model.OrderStatus;
 import org.altervista.breve.awesome.pizza.model.Pizza;
@@ -30,10 +31,14 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -164,5 +169,65 @@ class OrderControllerTest {
                 .andExpect(content().string(om.writeValueAsString(expected)));
 
         verify(orderService).getOrder("a-present-order-code");
+    }
+
+    @Test
+    public void givenAnOrderCodeAndAnInvalidStatusThenShouldReturnBadRequest() throws Exception {
+        mockMvc.perform(patch("/api/v1/order/a-valid-order-code?status=an-invalid-status"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(orderService);
+    }
+
+    @Test
+    public void givenAnInvalidOrderCodeAndAStatusThenShouldReturnBadRequest() throws Exception {
+        when(orderService.getOrder(anyString())).thenThrow(InvalidOrderCodeException.class);
+
+        mockMvc.perform(patch("/api/v1/order/an-invalid-order-code?status=IN_PROGRESS"))
+                .andExpect(status().isBadRequest());
+
+        verify(orderService).getOrder("an-invalid-order-code");
+        verifyNoMoreInteractions(orderService);
+    }
+
+    @Test
+    public void givenANotPresentOrderCodeAndAStatusThenShouldReturnNotFound() throws Exception {
+        when(orderService.getOrder(anyString())).thenReturn(Optional.empty());
+
+        mockMvc.perform(patch("/api/v1/order/a-not-present-order-code?status=IN_PROGRESS"))
+                .andExpect(status().isNotFound());
+
+        verify(orderService).getOrder("a-not-present-order-code");
+        verifyNoMoreInteractions(orderService);
+    }
+
+    @Test
+    public void givenAPresentOrderCodeAndAStatusWhenTheStatusCannotBeSetThenShouldReturnUnprocessableEntity() throws Exception {
+        final Order expected = new Order(UUID.randomUUID(), OrderStatus.IN_PROGRESS, Map.of(Pizza.DIAVOLA, 7));
+        when(orderService.getOrder(anyString())).thenReturn(Optional.of(expected));
+        doThrow(InvalidStatusUpdateException.class)
+                .when(orderService)
+                .updateStatus(any(Order.class), any(OrderStatus.class));
+
+        mockMvc.perform(patch("/api/v1/order/a-present-order-code?status=IN_PROGRESS"))
+                .andExpect(status().isUnprocessableEntity());
+
+        verify(orderService).getOrder("a-present-order-code");
+        verify(orderService).updateStatus(expected, OrderStatus.IN_PROGRESS);
+    }
+
+    @Test
+    public void givenAPresentOrderCodeAndAStatusThenShouldUpdateTheStatusAndReturnOk() throws Exception {
+        final Order expected = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
+        when(orderService.getOrder(anyString())).thenReturn(Optional.of(expected));
+        doNothing()
+                .when(orderService)
+                .updateStatus(any(Order.class), any(OrderStatus.class));
+
+        mockMvc.perform(patch("/api/v1/order/a-present-order-code?status=IN_PROGRESS"))
+                .andExpect(status().isOk());
+
+        verify(orderService).getOrder("a-present-order-code");
+        verify(orderService).updateStatus(expected, OrderStatus.IN_PROGRESS);
     }
 }

@@ -5,6 +5,7 @@ import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderCodeException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderPizzaException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderQtyException;
+import org.altervista.breve.awesome.pizza.exception.InvalidStatusUpdateException;
 import org.altervista.breve.awesome.pizza.model.Order;
 import org.altervista.breve.awesome.pizza.model.OrderStatus;
 import org.altervista.breve.awesome.pizza.model.Pizza;
@@ -13,6 +14,8 @@ import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.utils.UUIDUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -214,5 +218,74 @@ class OrderServiceTest {
 
         assertEquals(Optional.of(expected), actual);
         verify(dao).findByUUID(AN_UUID);
+    }
+
+    @ParameterizedTest
+    @EnumSource(OrderStatus.class)
+    public void givenAnOrderAndAStatusWhenTheOrderIsAlreadyInThatStatusThenShouldDoNothing(final OrderStatus status) {
+        final Order order = new Order(UUID.randomUUID(), status, Map.of(Pizza.MARGHERITA, 7));
+
+        sut.updateStatus(order, status);
+
+        verifyNoInteractions(dao);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = OrderStatus.class, names = {"IN_PROGRESS", "DELIVERED"})
+    public void givenAnOrderNotInReadyStatusWhenTryingToSetReadyStatusThenShouldThrowInvalidStatusUpdateException(final OrderStatus status) {
+        final Order order = new Order(UUID.randomUUID(), status, Map.of(Pizza.MARGHERITA, 7));
+
+        assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.READY));
+
+        verifyNoInteractions(dao);
+    }
+
+    @Test
+    public void givenADeliveredOrderWhenTryingToSetInProgressStatusThenShouldThrowInvalidStatusUpdateException() {
+        final Order order = new Order(UUID.randomUUID(), OrderStatus.DELIVERED, Map.of(Pizza.MARGHERITA, 7));
+
+        assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.IN_PROGRESS));
+
+        verifyNoInteractions(dao);
+    }
+
+    @Test
+    public void givenAReadyOrderWhenTryingToSetInProgressStatusAndAnotherOrderHasInProgressStatusThenShouldThrowInvalidStatusUpdateException() {
+        final Order order = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
+        when(dao.searchByStatus(any(OrderStatus.class))).thenReturn(Collections.singletonList(inProgressOrder));
+
+        assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.IN_PROGRESS));
+
+        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
+        verifyNoMoreInteractions(dao);
+    }
+
+    @Test
+    public void givenAReadyOrderWhenTryingToSetInProgressStatusAndNoOrderHasInProgressStatusThenShouldSaveTheOrderWithInProgressStatus() {
+        final Order order = new Order(AN_UUID, OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
+        when(dao.searchByStatus(any(OrderStatus.class))).thenReturn(Collections.emptyList());
+
+        sut.updateStatus(order, OrderStatus.IN_PROGRESS);
+
+        verify(dao).searchByStatus(OrderStatus.IN_PROGRESS);
+        verify(dao).save(new Order(AN_UUID, OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7)));
+    }
+
+    @Test
+    public void givenAReadyOrderWhenTryingToSetDeliveredStatusThenShouldThrowInvalidStatusUpdateException() {
+        final Order order = new Order(UUID.randomUUID(), OrderStatus.READY, Map.of(Pizza.MARGHERITA, 7));
+
+        assertThrows(InvalidStatusUpdateException.class, () -> sut.updateStatus(order, OrderStatus.DELIVERED));
+
+        verifyNoInteractions(dao);
+    }
+
+    @Test
+    public void givenAnInProgressOrderWhenTryingToSetDeliveredStatusThenShouldSaveTheOrderWithDeliveredStatus() {
+        final Order order = new Order(AN_UUID, OrderStatus.IN_PROGRESS, Map.of(Pizza.MARGHERITA, 7));
+
+        sut.updateStatus(order, OrderStatus.DELIVERED);
+
+        verify(dao).save(new Order(AN_UUID, OrderStatus.DELIVERED, Map.of(Pizza.MARGHERITA, 7)));
     }
 }

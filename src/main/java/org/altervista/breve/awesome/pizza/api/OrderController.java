@@ -46,8 +46,13 @@ public class OrderController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PatchMapping("/{uuid}")
-    public ResponseEntity<Void> update(@PathVariable final String uuid, @RequestParam final OrderStatus status) {
-        return ResponseEntity.ok().build();
+    @PatchMapping("/{orderCode}")
+    public ResponseEntity<?> update(@PathVariable final String orderCode, @RequestParam final OrderStatus status) {
+        return service.getOrder(orderCode)
+                .map(order -> {
+                    service.updateStatus(order, status);
+                    return ResponseEntity.ok().build();
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }
