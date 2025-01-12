@@ -21,7 +21,7 @@ public class HomeController {
     }
 
     @GetMapping
-    @Operation(summary = "Just say hello!", description = "This API is meant to display the basic API info")
+    @Operation(summary = "I just want to say hello...", description = "This API is meant to display the basic API info")
     public ResponseEntity<String> hello() {
         return ResponseEntity.ok("Hello from %s %s".formatted(apiName, apiVersion));
     }
