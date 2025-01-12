@@ -9,6 +9,7 @@ import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.model.response.SubmitOrderResponse;
 import org.altervista.breve.awesome.pizza.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -35,11 +36,12 @@ public class OrderController {
     @PostMapping
     @Operation(summary = "Submit an order", description = "Add your favourite Pizza to queue and get them delivered as soon as possible")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "The order has been submitted and the orderCode for tracking purpose is returned"),
+            @ApiResponse(responseCode = "201", description = "The order has been submitted and the orderCode for tracking purpose is returned"),
             @ApiResponse(responseCode = "400", description = "You're asking something that we can't or don't want to handle")
     })
     public ResponseEntity<SubmitOrderResponse> submit(@RequestBody SubmitOrderRequest request) {
-        return ResponseEntity.ok(new SubmitOrderResponse(service.submit(request)));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new SubmitOrderResponse(service.submit(request)));
     }
 
     @GetMapping

@@ -92,7 +92,7 @@ Add your favorite pizza to the queue and get it delivered as soon as possible.
     - Content-Type: `application/json`
     - Schema: `SubmitOrderRequest`
 - **Responses**:
-    - `200 OK`: Returns a `SubmitOrderResponse` containing the order code for tracking.
+    - `201 Created`: Returns a `SubmitOrderResponse` containing the order code for tracking.
     - `400 Bad Request`: The request cannot be processed.
 
 ---

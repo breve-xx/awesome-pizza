@@ -120,7 +120,7 @@ class OrderControllerTest {
         mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsBytes(req)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(content().string(om.writeValueAsString(new SubmitOrderResponse(AN_UUID))));
 
         verify(orderService).submit(req);
