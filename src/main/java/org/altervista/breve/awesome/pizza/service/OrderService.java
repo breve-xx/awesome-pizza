@@ -10,11 +10,11 @@ import org.altervista.breve.awesome.pizza.model.OrderStatus;
 import org.altervista.breve.awesome.pizza.model.Pizza;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.repository.OrderRepository;
+import org.altervista.breve.awesome.pizza.utils.DateTimeUtils;
 import org.altervista.breve.awesome.pizza.utils.UUIDUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,12 +25,14 @@ import java.util.stream.Stream;
 @Service
 public class OrderService {
 
-    private final UUIDUtils utils;
+    private final UUIDUtils uuidUtils;
+    private final DateTimeUtils dateTimeUtils;
     private final OrderRepository repository;
 
     @Autowired
-    public OrderService(UUIDUtils utils, OrderRepository repository) {
-        this.utils = utils;
+    public OrderService(UUIDUtils uuidUtils, DateTimeUtils dateTimeUtils, OrderRepository repository) {
+        this.uuidUtils = uuidUtils;
+        this.dateTimeUtils = dateTimeUtils;
         this.repository = repository;
     }
 
@@ -48,7 +50,7 @@ public class OrderService {
             pizzas.putIfAbsent(pizza, qty);
         });
 
-        return repository.save(new Order(utils.get(), LocalDateTime.now(), OrderStatus.READY, pizzas)).id();
+        return repository.save(new Order(uuidUtils.get(), dateTimeUtils.now(), OrderStatus.READY, pizzas)).id();
     }
 
 

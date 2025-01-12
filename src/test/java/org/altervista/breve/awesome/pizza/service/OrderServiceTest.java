@@ -11,6 +11,7 @@ import org.altervista.breve.awesome.pizza.model.Pizza;
 import org.altervista.breve.awesome.pizza.model.request.OrderEntry;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.repository.OrderRepository;
+import org.altervista.breve.awesome.pizza.utils.DateTimeUtils;
 import org.altervista.breve.awesome.pizza.utils.UUIDUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,7 +47,10 @@ class OrderServiceTest {
     private final Order readyOrder2 = new Order(UUID.randomUUID(), SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.CAPRICCIOSA, 7));
 
     @Mock
-    private UUIDUtils utils;
+    private UUIDUtils uuidUtils;
+
+    @Mock
+    private DateTimeUtils dateTimeUtils;
 
     @Mock
     private OrderRepository repository;
@@ -58,7 +62,8 @@ class OrderServiceTest {
     public void givenANullRequestThenShouldThrowEmptyOrderException() {
         assertThrows(EmptyOrderException.class, () -> sut.submit(null));
 
-        verifyNoInteractions(utils);
+        verifyNoInteractions(uuidUtils);
+        verifyNoInteractions(dateTimeUtils);
         verifyNoInteractions(repository);
     }
 
@@ -68,7 +73,8 @@ class OrderServiceTest {
 
         assertThrows(EmptyOrderException.class, () -> sut.submit(req));
 
-        verifyNoInteractions(utils);
+        verifyNoInteractions(uuidUtils);
+        verifyNoInteractions(dateTimeUtils);
         verifyNoInteractions(repository);
     }
 
@@ -78,7 +84,8 @@ class OrderServiceTest {
 
         assertThrows(EmptyOrderException.class, () -> sut.submit(req));
 
-        verifyNoInteractions(utils);
+        verifyNoInteractions(uuidUtils);
+        verifyNoInteractions(dateTimeUtils);
         verifyNoInteractions(repository);
     }
 
@@ -88,7 +95,8 @@ class OrderServiceTest {
 
         assertThrows(InvalidOrderPizzaException.class, () -> sut.submit(req));
 
-        verifyNoInteractions(utils);
+        verifyNoInteractions(uuidUtils);
+        verifyNoInteractions(dateTimeUtils);
         verifyNoInteractions(repository);
     }
 
@@ -98,13 +106,15 @@ class OrderServiceTest {
 
         assertThrows(InvalidOrderQtyException.class, () -> sut.submit(req));
 
-        verifyNoInteractions(utils);
+        verifyNoInteractions(uuidUtils);
+        verifyNoInteractions(dateTimeUtils);
         verifyNoInteractions(repository);
     }
 
     @Test
     public void givenARequestWithDuplicatedNamesInTheOrderThenShouldSaveAnOrderCollapsingThem() {
-        when(utils.get()).thenReturn(AN_UUID);
+        when(uuidUtils.get()).thenReturn(AN_UUID);
+        when(dateTimeUtils.now()).thenReturn(SOMEWHERE_IN_TIME);
         final Order expected = new Order(AN_UUID, SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(Pizza.DIAVOLA, 7));
         when(repository.save(any(Order.class))).thenReturn(expected);
 
@@ -116,13 +126,15 @@ class OrderServiceTest {
         final UUID actual = sut.submit(req);
 
         assertEquals(AN_UUID, actual);
-        verify(utils).get();
+        verify(uuidUtils).get();
+        verify(dateTimeUtils).now();
         verify(repository).save(expected);
     }
 
     @Test
     public void givenARequestThenShouldSaveAnOrder() {
-        when(utils.get()).thenReturn(AN_UUID);
+        when(uuidUtils.get()).thenReturn(AN_UUID);
+        when(dateTimeUtils.now()).thenReturn(SOMEWHERE_IN_TIME);
         final Order expected = new Order(AN_UUID, SOMEWHERE_IN_TIME, OrderStatus.READY, Map.of(
                 Pizza.MARGHERITA, 7,
                 Pizza.CAPRICCIOSA, 7,
@@ -138,7 +150,8 @@ class OrderServiceTest {
         final UUID actual = sut.submit(req);
 
         assertEquals(AN_UUID, actual);
-        verify(utils).get();
+        verify(uuidUtils).get();
+        verify(dateTimeUtils).now();
         verify(repository).save(expected);
     }
 
