@@ -2,10 +2,10 @@ package org.altervista.breve.awesome.pizza.service;
 
 import org.altervista.breve.awesome.pizza.exception.EmptyOrderException;
 import org.altervista.breve.awesome.pizza.exception.InvalidOrderCodeException;
+import org.altervista.breve.awesome.pizza.exception.InvalidOrderPizzaException;
+import org.altervista.breve.awesome.pizza.exception.InvalidOrderQtyException;
 import org.altervista.breve.awesome.pizza.exception.InvalidStatusUpdateException;
 import org.altervista.breve.awesome.pizza.model.Order;
-import org.altervista.breve.awesome.pizza.model.OrderPizza;
-import org.altervista.breve.awesome.pizza.model.OrderQty;
 import org.altervista.breve.awesome.pizza.model.OrderStatus;
 import org.altervista.breve.awesome.pizza.model.Pizza;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
@@ -44,8 +44,8 @@ public class OrderService {
         final Map<Pizza, Integer> pizzas = new HashMap<>();
 
         request.order().forEach(e -> {
-            final Pizza pizza = new OrderPizza(e.name().toUpperCase()).pizza();
-            final int qty = new OrderQty(e.qty()).qty();
+            final Pizza pizza = parsePizza(e.name());
+            final int qty = parseQty(e.qty());
             pizzas.computeIfPresent(pizza, (k, v) -> v + qty);
             pizzas.putIfAbsent(pizza, qty);
         });
@@ -89,5 +89,20 @@ public class OrderService {
                 }
             }
         }
+    }
+
+    private Pizza parsePizza(String name) {
+        try {
+            return Pizza.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidOrderPizzaException();
+        }
+    }
+
+    private int parseQty(int qty) {
+        if (qty <= 0) {
+            throw new InvalidOrderQtyException();
+        }
+        return qty;
     }
 }
