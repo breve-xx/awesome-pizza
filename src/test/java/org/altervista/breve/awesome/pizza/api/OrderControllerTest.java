@@ -42,6 +42,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest
@@ -121,6 +122,7 @@ class OrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsBytes(req)))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/v1/orders/%s".formatted(AN_UUID)))
                 .andExpect(content().string(om.writeValueAsString(new SubmitOrderResponse(AN_UUID))));
 
         verify(orderService).submit(req);

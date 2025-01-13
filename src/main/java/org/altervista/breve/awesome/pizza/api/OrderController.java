@@ -3,13 +3,13 @@ package org.altervista.breve.awesome.pizza.api;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.servlet.http.HttpServletRequest;
 import org.altervista.breve.awesome.pizza.model.Order;
 import org.altervista.breve.awesome.pizza.model.OrderStatus;
 import org.altervista.breve.awesome.pizza.model.request.SubmitOrderRequest;
 import org.altervista.breve.awesome.pizza.model.response.SubmitOrderResponse;
 import org.altervista.breve.awesome.pizza.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -39,9 +41,11 @@ public class OrderController {
             @ApiResponse(responseCode = "201", description = "The order has been submitted and the orderCode for tracking purpose is returned"),
             @ApiResponse(responseCode = "400", description = "You're asking something that we can't or don't want to handle")
     })
-    public ResponseEntity<SubmitOrderResponse> submit(@RequestBody SubmitOrderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new SubmitOrderResponse(service.submit(request)));
+    public ResponseEntity<SubmitOrderResponse> submit(@RequestBody SubmitOrderRequest submitOrderRequest, final HttpServletRequest httpServletRequest) {
+        final UUID orderCode = service.submit(submitOrderRequest);
+        final URI location = URI.create(String.valueOf(httpServletRequest.getRequestURL().append("/%s".formatted(orderCode))));
+        final SubmitOrderResponse response = new SubmitOrderResponse(orderCode);
+        return ResponseEntity.created(location).body(response);
     }
 
     @GetMapping
