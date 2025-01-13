@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -41,10 +40,13 @@ public class OrderController {
             @ApiResponse(responseCode = "201", description = "The order has been submitted and the orderCode for tracking purpose is returned"),
             @ApiResponse(responseCode = "400", description = "You're asking something that we can't or don't want to handle")
     })
-    public ResponseEntity<SubmitOrderResponse> submit(@RequestBody SubmitOrderRequest submitOrderRequest, final HttpServletRequest httpServletRequest) {
-        final UUID orderCode = service.submit(submitOrderRequest);
-        final URI location = URI.create(String.valueOf(httpServletRequest.getRequestURL().append("/%s".formatted(orderCode))));
-        final SubmitOrderResponse response = new SubmitOrderResponse(orderCode);
+    public ResponseEntity<SubmitOrderResponse> submit(@RequestBody SubmitOrderRequest request, final HttpServletRequest httpRequest) {
+        final SubmitOrderResponse response = new SubmitOrderResponse(service.submit(request));
+        final URI location = URI.create(
+                httpRequest.getRequestURL()
+                        .append("/")
+                        .toString()
+        );
         return ResponseEntity.created(location).body(response);
     }
 
